@@ -1,6 +1,43 @@
 package WWW::DerSpiegel::Scraper;
 
 use Text::Scraper;
+use Web::Scraper;
+
+sub new_index_scrape {
+	my $html = shift;
+
+	# First, create your scraper block
+	my $authors = scraper {
+		# Parse all LIs inside '.spiegel-contents' class div, store them into
+		# an array 'deflist'.  We embed other scrapers for each DT/DD.
+		process '.spiegel-contents li', "items[]" => scraper {
+			process ".content-intro", page => 'TEXT';
+			# And, in each LI,
+			# get the URI of "a" element
+			process "a", article_link => '@href';
+			# get text inside link element
+			process "a", text => 'TEXT';
+		};
+	};
+
+	my $ref = $authors->scrape( $html );
+
+	for my $toc_entry (@{$ref->{items}}){
+		if($toc_entry->{text} =~ /\(S\.\x{a0}(\d+)\)/){
+			$toc_entry->{page} = $1;
+		}elsif($toc_entry->{page}){
+			$toc_entry->{page} = int($toc_entry->{page});
+		}
+		$toc_entry->{article_link} = 'http://www.spiegel.de' . $toc_entry->{article_link};
+
+		$toc_entry->{article_link} =~ /\/d-(\d+)\.html/;
+		$toc_entry->{pdf_link} = 'http://magazin.spiegel.de/EpubDelivery/spiegel/pdf/' . $1;
+	}
+
+#	use Data::Dumper;
+#	print Dumper($ref);
+	return $ref;
+}
 
 sub index_scrape {
 	my $html = shift;
@@ -19,7 +56,7 @@ sub index_scrape {
 
 			if(!$_->{page_no}){
 				if($_->{title} =~ /nbsp;(\d+)\)$/ ){
-					$_->{page_no} = $1;
+					$_->{page} = $1;
 					$_->{has_page_no} = 1;
 					$_->{title} =~ s/ \(S\.\&nbsp;\d+\)//;
 				}
@@ -38,6 +75,17 @@ sub index_scrape {
 			# $_->{pdf_link} = 'http://wissen.spiegel.de/wissen/image/show.html?did='. 50910408 .'&aref='. image036/2007/03/17/ROSP200701202040204.'.PDF&thumb=false',
 		}
 	}
+
+	return $meta;
+}
+
+sub new_article_scrape {
+	my $html = shift;
+
+	$html =~ /EpubDelivery\/spiegel\/pdf\/(\d+)/;
+	my $meta = {
+		pdf_link => 'http://magazin.spiegel.de/EpubDelivery/spiegel/pdf/' . $1
+	};
 
 	return $meta;
 }

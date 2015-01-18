@@ -6,7 +6,7 @@ use strict;
 use WWW::DerSpiegel::Scraper;
 use LWP::UserAgent;
 
-our $VERSION = '0.01';
+our $VERSION = '0.03';
 
 sub new {
 	my $class = shift;
@@ -23,7 +23,7 @@ sub new {
 sub sort_by_page_no {
 	my $self = shift;
 
-	@{$self->{issue}->{items}} = sort { $a->{page_no} <=> $b->{page_no} } @{$self->{issue}->{items}};
+	@{$self->{issue}->{items}} = sort { $a->{page} <=> $b->{page} } @{$self->{issue}->{items}};
 
 	return $self;
 }
@@ -33,7 +33,7 @@ sub page_dedup {
 
 	my %seen;
 	for(@{$self->{issue}->{items}}){
-		$seen{ $_->{page_no} } = $_;
+		$seen{ $_->{page} } = $_;
 	}
 
 	@{$self->{issue}->{items}} = ();
@@ -67,37 +67,22 @@ sub as_pdf {
 
 sub gather {
 	my $self = shift;
+
 	my $magazine = shift;
 
 	($self->{number},$self->{year}) = split(/\//,$magazine);
 
+	die "gather: year or number missing!" unless $self->{number} && $self->{year};
+	print "gather: GET ". 'http://www.spiegel.de/spiegel/print/index-'. $self->{year} .'-'. $self->{number} .'.html' ."\n" if $self->{debug};
+
+	print "Downloading issue ". $self->{year} .'-'. $self->{number} ." toc...";
 	my $response = $self->{ua}->get('http://www.spiegel.de/spiegel/print/index-'. $self->{year} .'-'. $self->{number} .'.html');
 	die $response->status_line if !$response->is_success;
+	print " OK\n";
 
-	$self->{issue} = WWW::DerSpiegel::Scraper::index_scrape($response->decoded_content);
+	$self->{issue} = WWW::DerSpiegel::Scraper::new_index_scrape($response->decoded_content);
 
-	my $cnt = scalar(@{$self->{issue}->{items}});
-	for(@{$self->{issue}->{items}}){
-		next if !$_->{article_link};
-
-		print " GET $cnt $_->{article_link}...";
-		$response = $self->{ua}->get( $_->{article_link} );
-		if($response->is_success){ print " OK\n" }else{ print " Error\n"; };
-
-		my $ameta = WWW::DerSpiegel::Scraper::article_scrape($response->decoded_content);
-
-		$_->{pdf_link} = $ameta->{pdf_link};
-		print " No PDF link!\n" if !$_->{pdf_link};
-
-	#	$_->{pdf_link} = 'http://wissen.spiegel.de/wissen/image/show.html?did='
-	#			. $_->{document_id}
-	#			.'&aref='
-	#			. $ameta->{imagebit}
-	#			. '/ROSP'. $year. sprintf("%03d", $issue) . sprintf("%03d", $issue) . sprintf("%03d", $issue)
-	#									^^^ 			^^^ from-to pages is not predicatable, so we have to crawl all articles..
-	#			.'.PDF&thumb=false',
-		$cnt--;
-	}
+	my $cnt = scalar(@{ $self->{issue}->{items} });
 
 	return $self;
 }
@@ -124,7 +109,7 @@ isync
 
 =head1 COPYRIGHT
 
-Copyright 2013 isync. All rights reserved.
+Copyright 2013/2015 isync. All rights reserved.
 
 =head1 LICENSE
 

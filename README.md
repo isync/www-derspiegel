@@ -15,15 +15,11 @@ regelmäßig nach 6 Monaten im Heftarchiv. Allerdings in zerpflückter Weise: ei
 pro Artikel. Dieses Modul hier greift programmatisch auf die Artikel zu und hilft, 
 einzelne Ausgaben als ganze PDF Dateien wieder zusammen zu setzen.
 
-Leider ist das Modul seit einer Änderung im HTML Layout ~ 2013 de-funct.
-
 ## DESCRIPTION
 
 The German news magazine "Der Spiegel" publishes back-issues (after 6 months) as
 free for everyone on website, in the archive section. This module here accesses
 this archive in a programmatical manner and is able to compile issues as pdf files.
-
-Sadly, as of a ~ mid-2013 HTML mutation, the module is defunt.
 
 ## Hey, contribute!
 
