@@ -54,7 +54,7 @@ sub index_scrape {
 			$last_cat = $_->{cat} if $_->{cat};
 			$_->{cat} = $last_cat if !$_->{cat} && $last_cat;
 
-			if(!$_->{page_no}){
+			if(!$_->{page}){
 				if($_->{title} =~ /nbsp;(\d+)\)$/ ){
 					$_->{page} = $1;
 					$_->{has_page_no} = 1;

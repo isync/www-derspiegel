@@ -15,11 +15,15 @@ regelmäßig nach 6 Monaten im Heftarchiv. Allerdings in zerpflückter Weise: ei
 pro Artikel. Dieses Modul hier greift programmatisch auf die Artikel zu und hilft, 
 einzelne Ausgaben als ganze PDF Dateien wieder zusammen zu setzen.
 
+WWW::DerSpiegel verwendet die Linux tools _gs_ und ImageMagicks _convert_.
+
 ## DESCRIPTION
 
 The German news magazine "Der Spiegel" publishes back-issues (after 6 months) as
 free for everyone on website, in the archive section. This module here accesses
 this archive in a programmatical manner and is able to compile issues as pdf files.
+
+WWW::DerSpiegel relies on Linux tools _gs_ and ImageMagick's _convert_.
 
 ## Hey, contribute!
 
