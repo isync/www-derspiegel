@@ -9,12 +9,18 @@ use Encode;
 use lib 'lib';
 use WWW::DerSpiegel;
 
-plan tests => 5;
+plan tests => 6;
 
+
+my $html = decode_utf8( File::Slurp::read_file('t/data/spiegel.de_spiegel_print_index-2015-1.html') );
+
+my $meta = WWW::DerSpiegel::Scraper::new_2015_index_scrape( $html );
+
+is( scalar(@{$meta->{items}}), 69, 'TOC count matches');
 
 my $html = decode_utf8( File::Slurp::read_file('t/data/spiegel.de_spiegel_print_index-2003-48.html') );
 
-my $meta = WWW::DerSpiegel::Scraper::new_index_scrape( $html );
+my $meta = WWW::DerSpiegel::Scraper::new_2015_index_scrape( $html );
 
 my ($has_title,$is_numeric,$has_url,$pdf_ok) = (1,1,1,1);
 for my $toc_entry (@{$meta->{items}}){

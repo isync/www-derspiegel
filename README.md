@@ -1,7 +1,7 @@
 WWW::DerSpiegel
 ===============
 
-WWW::DerSpiegel - "Der SPIEGEL" magazine archive pseudo API
+WWW::DerSpiegel - "Der SPIEGEL" magazine archive pseudo API and download
 
 ## SYNOPSIS
 
@@ -24,6 +24,14 @@ free for everyone on website, in the archive section. This module here accesses
 this archive in a programmatical manner and is able to compile issues as pdf files.
 
 WWW::DerSpiegel relies on Linux tools _gs_ and ImageMagick's _convert_.
+
+Usage:
+
+The bundled download.pl script uses the WWW::DerSpiegel module to download single
+issues issues or a whole year. For example:
+
+	$ perl download.pl 31/2003
+	$ perl download.pl --year 2015 --output-dir 2015
 
 ## Hey, contribute!
 

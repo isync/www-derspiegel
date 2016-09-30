@@ -7,7 +7,7 @@ use WWW::DerSpiegel::Scraper;
 use LWP::UserAgent;
 use Capture::Tiny;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub new {
 	my $class = shift;
@@ -16,10 +16,15 @@ sub new {
 		@_
 	}, $class);
 
-	$self->{ua} = LWP::UserAgent->new() if !$self->{ua};
+	$self->{ua} = LWP::UserAgent->new(agent => "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36") if !$self->{ua};
 	# $self->{ua}->default_header( 'User-Agent' => $self->{ua}->_agent() .'+'. __PACKAGE__ .'/'. $VERSION );
-	$self->{ua}->agent( $self->{ua}->_agent() .'+'. __PACKAGE__ .'/'. $VERSION ); # no work
+	# $self->{ua}->agent( $self->{ua}->_agent() .'+'. __PACKAGE__ .'/'. $VERSION ); # no work
 	print " User-Agent string is: ". $self->{ua}->agent() ."\n" if $self->{debug};
+
+	if($self->{proxy}){
+		$self->{ua}->proxy(['http','https'] => $self->{proxy});
+		print " Using proxy $self->{proxy} \n" if $self->{debug};
+	}
 
 	return $self;
 }
@@ -32,6 +37,7 @@ sub sort_by_page_no {
 	return $self;
 }
 
+# currently unused:
 sub page_dedup {
 	my $self = shift;
 
@@ -58,16 +64,21 @@ sub as_pdf {
 		my ($file,$url);
 		if($_->{jpg_link}){
 			$url = $_->{jpg_link};
-			$file = "/tmp/".$cnt.".jpg";
+			$file = '/tmp/'. $self->{year} . $self->{number} . $cnt .".jpg";
 		}else{
 			$url = $_->{pdf_link};
-			$file = "/tmp/".$cnt.".pdf";
+			$file = '/tmp/'. $self->{year} . $self->{number} . $cnt .".pdf";
 		}
 
 		print " Downloading $cnt $url...";
 		my $response = $self->{ua}->get( $url, ':content_file' => $file );
 
-		print $response->is_success ? " OK\n" : " Error".$response->status_line."\n";
+		if($response->is_success){
+			print " OK\n";
+			$_->{download_ok} = 1;
+		}else{
+			print " Error: ". $response->status_line."\n";
+		}
 
 		if($_->{jpg_link}){
 			print "  Converting cover jpg to pdf...";
@@ -77,10 +88,15 @@ sub as_pdf {
 			$file = $ps_file;
 		}
 
-		push(@files,$file);
 		$cnt--;
+
+		next unless $_->{jpg_link} or $_->{download_ok}; # no push, prevent gs from error
+
+		push(@files,$file);
 		sleep(1); # throttle
 	}
+
+	push(@{ $self->{temp_files} }, @files);
 
 	print " Merging pages with ghostscript...";
 
@@ -95,6 +111,23 @@ sub as_pdf {
 	}
 
 	print "gs exit code:".($exit||'').", stdout:". length($stdout) .", stderr:". length($stderr) ."\n" if $self->{debug};
+
+	return $self;
+}
+
+sub remove_temp_files {
+	my $self = shift;
+
+	for my $temp_file (@{ $self->{temp_files} }){
+		print "removing temp file $temp_file ... " if $self->{debug};
+		my $ok = unlink($temp_file);
+		if($self->{debug}){
+			if($ok){ print "OK\n"; }else{ print "Error removing $temp_file: $!\n"; }
+		}
+	}
+	@{ $self->{temp_files} } = ();
+
+	return $self;
 }
 
 sub gather {
@@ -114,7 +147,7 @@ sub gather {
 	die $response->status_line if !$response->is_success;
 	print " OK\n";
 
-	$self->{issue} = WWW::DerSpiegel::Scraper::new_index_scrape($response->decoded_content);
+	$self->{issue} = WWW::DerSpiegel::Scraper::new_2015_index_scrape($response->decoded_content);
 
 	for(@{$self->{issue}->{items}}){
 		die "This issue is not yet available for free. Wait a few weeks more." if $_->{article_link} =~ /utm_source/;
@@ -137,7 +170,7 @@ sub gather {
 
 =head1 NAME
 
-WWW::DerSpiegel - "Der SPIEGEL" magazine archive pseudo API
+WWW::DerSpiegel - "Der SPIEGEL" magazine archive pseudo API and download
 
 =head1 SYNOPSIS
 
@@ -155,7 +188,7 @@ isync
 
 =head1 COPYRIGHT
 
-Copyright 2013/2015 isync. All rights reserved.
+Copyright 2013/2016 isync. All rights reserved.
 
 =head1 LICENSE
 
